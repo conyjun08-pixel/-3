@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>반응속도 테스트</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+      background: #e74c3c;
+      transition: background 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    #game {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 25px;
+      cursor: pointer;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 15px;
+    }
+
+    #message {
+      font-size: 27px;
+      font-weight: bold;
+      margin: 20px 0;
+      line-height: 1.5;
+    }
+
+    #info {
+      font-size: 17px;
+      margin: 15px 0;
+    }
+
+    #result {
+      font-size: 20px;
+      line-height: 1.8;
+      white-space: pre-line;
+    }
+
+    button {
+      border: none;
+      border-radius: 30px;
+      padding: 16px 35px;
+      font-size: 19px;
+      font-weight: bold;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .grade {
+      font-size: 65px;
+      font-weight: bold;
+      margin: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="game">
+
+    <h1>⚡ 반응속도 테스트</h1>
+
+    <div id="message">
+      화면을 눌러<br>테스트를 시작하세요!
+    </div>
+
+    <div id="info">
+      총 5번 측정합니다.
+    </div>
+
+    <div id="result"></div>
+
+    <button id="startBtn">게임 시작</button>
+
+  </div>
+
+  <script>
+    const game = document.getElementById("game");
+    const message = document.getElementById("message");
+    const info = document.getElementById("info");
+    const result = document.getElementById("result");
+    const startBtn = document.getElementById("startBtn");
+
+    let state = "ready";
+    let round = 0;
+    let times = [];
+    let startTime = 0;
+    let timer = null;
+
+    // 게임 시작
+    function startGame() {
+      clearTimeout(timer);
+
+      round = 0;
+      times = [];
+      result.textContent = "";
+
+      startBtn.classList.add("hidden");
+
+      nextRound();
+    }
+
+    // 다음 라운드
+    function nextRound() {
+      round++;
+      state = "waiting";
+
+      game.style.background = "#e74c3c";
+
+      message.textContent = "초록색이 되면 누르세요!";
+      info.textContent = round + " / 5 번째 테스트";
+      result.textContent = "";
+
+      // 1.5초~5초 랜덤 대기
+      const randomTime = Math.random() * 3500 + 1500;
+
+      timer = setTimeout(() => {
+        state = "go";
+
+        game.style.background = "#2ecc71";
+        message.textContent = "지금 누르세요!";
+
+        startTime = performance.now();
+
+      }, randomTime);
+    }
+
+    // 화면 클릭 및 터치
+    function handleClick() {
+
+      if (state === "waiting") {
+        clearTimeout(timer);
+
+        state = "early";
+
+        game.style.background = "#e67e22";
+        message.textContent = "너무 빨라요! ❌";
+        info.textContent = "이번 테스트는 실패했습니다.";
+
+        startBtn.textContent = "다시 도전";
+        startBtn.classList.remove("hidden");
+
+      }
+
+      else if (state === "go") {
+
+        const reactionTime = Math.round(
+          performance.now() - startTime
+        );
+
+        times.push(reactionTime);
+
+        state = "result";
+
+        game.style.background = "#3498db";
+
+        message.textContent = reactionTime + " ms";
+        info.textContent = round + " / 5 번째 결과";
+
+        if (round < 5) {
+
+          result.textContent = "다음 테스트를 준비하세요!";
+
+          timer = setTimeout(nextRound, 1200);
+
+        } else {
+
+          showFinalResult();
+
+        }
+      }
+    }
+
+    // 최종 결과 및 등급 계산
+    function showFinalResult() {
+
+      state = "finished";
+
+      const average = Math.round(
+        times.reduce((sum, time) => sum + time, 0) / 5
+      );
+
+      let grade;
+      let comment;
+
+      if (average < 150) {
+        grade = "S";
+        comment = "초인적인 반응속도!";
+      }
+
+      else if (average < 200) {
+        grade = "A";
+        comment = "매우 빠릅니다!";
+      }
+
+      else if (average < 250) {
+        grade = "B";
+        comment = "빠른 편입니다!";
+      }
+
+      else if (average < 300) {
+        grade = "C";
+        comment = "평균적인 반응속도!";
+      }
+
+      else if (average < 400) {
+        grade = "D";
+        comment = "조금 더 연습해 봐요!";
+      }
+
+      else {
+        grade = "F";
+        comment = "연습이 필요해요!";
+      }
+
+      game.style.background = "#3498db";
+
+      message.innerHTML =
+        '최종 등급<br><span class="grade">' +
+        grade + '</span>';
+
+      info.textContent =
+        "평균 반응속도 : " + average + " ms";
+
+      result.textContent =
+        times.map((time, i) =>
+          (i + 1) + "회차 : " + time + " ms"
+        ).join("\n") +
+        "\n\n" + comment;
+
+      startBtn.textContent = "다시 테스트";
+      startBtn.classList.remove("hidden");
+    }
+
+    // 화면 터치 이벤트
+    game.addEventListener("pointerdown", (event) => {
+
+      if (event.target === startBtn) return;
+
+      if (
+        state === "ready" ||
+        state === "finished" ||
+        state === "early"
+      ) return;
+
+      handleClick();
+    });
+
+    // 시작 버튼
+    startBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      startGame();
+    });
+
+  </script>
+
+</body>
+</html>
